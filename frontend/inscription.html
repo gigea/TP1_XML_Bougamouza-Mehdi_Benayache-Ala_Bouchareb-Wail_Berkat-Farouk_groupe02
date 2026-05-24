@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Inscription</title>
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<header>
+
+    <h1>Inscription</h1>
+
+    <nav>
+        <a href="index.html">Concours</a>
+        <a href="inscription.html">Inscription</a>
+        <a href="resultats.html">Résultats</a>
+        <a href="requetes.html">XQuery</a>
+    </nav>
+
+</header>
+
+<div class="container">
+
+<form id="inscriptionForm"
+      onsubmit="inscrireMembre(event)">
+
+    <input type="text"
+           name="concoursId"
+           placeholder="ID Concours"
+           required>
+
+    <input type="text"
+           name="membreRef"
+           placeholder="ID Membre"
+           required>
+
+    <input type="number"
+           name="complexite"
+           placeholder="Complexité"
+           required>
+
+    <input type="number"
+           name="tempsExecution"
+           placeholder="Temps d'exécution"
+           required>
+
+    <button type="submit">
+        Inscrire
+    </button>
+
+</form>
+
+<div id="message" class="result"></div>
+
+</div>
+
+<script src="js/app.js"></script>
+
+</body>
+</html>
