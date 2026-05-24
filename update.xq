@@ -1,3 +1,5 @@
+xquery version "3.1";
+
 (: ═══════════════════════════════════════════════════════════
    Fichier : updates.xq
    Projet  : Club Info_Tech — TP XML / XSD / XQuery
@@ -22,13 +24,14 @@
    ────────────────────────────────────────────────────────── :)
 
 (: UPDATE 1 — Insertion :)
+(
 insert node
   <membre id="M012" categorieRef="C2">
     <nom>Ferhat</nom>
     <prenom>Imane</prenom>
     <email>i.ferhat@club.dz</email>
   </membre>
-into doc("club.xml")//membres
+into doc("club.xml")//membres,
 
 
 (: ──────────────────────────────────────────────────────────
@@ -44,7 +47,7 @@ into doc("club.xml")//membres
 (: UPDATE 2 — Modification du coefficient de CO2 :)
 replace value of node
   doc("club.xml")//concours[@id = "CO2"]/@coefficient
-with "2.0"
+with "2.0",
 
 
 (: ──────────────────────────────────────────────────────────
@@ -69,6 +72,7 @@ with "2.0"
 delete node
   doc("club.xml")//concours[@id = "CO3"]
     //participant[@membreRef = "M007"]
+)
 
 
 (: ──────────────────────────────────────────────────────────
