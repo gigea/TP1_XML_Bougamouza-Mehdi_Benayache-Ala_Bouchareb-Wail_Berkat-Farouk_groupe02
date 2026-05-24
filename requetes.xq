@@ -1,162 +1,140 @@
-(: ──────────────────────────────────────────────────────────
-   Q1 — Liste complète des membres (1 pt)
-   Affiche : id, nom complet, email et libellé de la catégorie
-   ────────────────────────────────────────────────────────── :)
+xquery version "3.1";
 
-(: Q1 :)
-let $doc := doc("club.xml")
-return
+declare variable $doc := doc("club.xml");
+declare variable $categorie := "Intelligence Artificielle";
+
+(: ====================================================== :)
+(: Q1 — Liste complète des membres :)
+(: Affiche ID, nom complet, email et catégorie :)
+(: ====================================================== :)
+let $q1 :=
 <membres>
 {
-  (: Pour chaque membre du document :)
   for $m in $doc//membre
-    (: Jointure : retrouver la catégorie correspondant à categorieRef :)
     let $cat := $doc//categorie[@id = $m/@categorieRef]
+
   return
-    <membre id="{$m/@id}">
-      (: Concaténation prénom + nom pour le nom complet :)
-      <nomComplet>{ concat($m/prenom, ' ', $m/nom) }</nomComplet>
-      <email>{ string($m/email) }</email>
-      <categorie>{ string($cat/@libelle) }</categorie>
+    <membre id="{data($m/@id)}">
+      <nomComplet>
+        {concat(data($m/prenom), " ", data($m/nom))}
+      </nomComplet>
+      <email>{data($m/email)}</email>
+      <categorie>{data($cat/@libelle)}</categorie>
     </membre>
 }
 </membres>
 
-
-(: ──────────────────────────────────────────────────────────
-   Q2 — Liste des concours (1 pt)
-   Affiche : titre, date, coefficient, libellé catégorie
-   Triés par date croissante
-   ────────────────────────────────────────────────────────── :)
-
-(: Q2 :)
-let $doc := doc("club.xml")
-return
+(: ====================================================== :)
+(: Q2 — Liste des concours triés par date :)
+(: ====================================================== :)
+let $q2 :=
 <concours>
 {
-  (: FLWOR avec tri par date :)
-  for $c in $doc//concours/concours
-    (: Jointure : récupérer la catégorie liée au concours :)
+  for $c in $doc/club/concours/concours
     let $cat := $doc//categorie[@id = $c/@categorieRef]
-    (: Tri par date croissante (xs:date pour comparer correctement) :)
-    order by xs:date($c/@date) ascending
+    order by xs:date($c/@date)
+
   return
-    <concours id="{$c/@id}">
-      <titre>{ string($c/titre) }</titre>
-      <date>{ string($c/@date) }</date>
-      <coefficient>{ string($c/@coefficient) }</coefficient>
-      <categorie>{ string($cat/@libelle) }</categorie>
+    <concours id="{data($c/@id)}">
+      <titre>{data($c/titre)}</titre>
+      <date>{data($c/@date)}</date>
+      <coefficient>{data($c/@coefficient)}</coefficient>
+      <categorie>{data($cat/@libelle)}</categorie>
     </concours>
 }
 </concours>
 
-
-(: ──────────────────────────────────────────────────────────
-   Q3 — Calcul des scores de chaque participant (2 pts)
-   Formule : score = (complexite + tempsExecution) × coefficient
-   Arrondi à 2 décimales
-   ────────────────────────────────────────────────────────── :)
-
-(: Q3 :)
-let $doc := doc("club.xml")
-return
+(: ====================================================== :)
+(: Q3 — Calcul des scores des participants :)
+(: score = (complexite + tempsExecution) × coefficient :)
+(: ====================================================== :)
+let $q3 :=
 <resultats>
 {
-  (: Boucle sur chaque concours :)
-  for $c in $doc//concours/concours
-    (: Coefficient converti en décimal pour le calcul :)
+  for $c in $doc/club/concours/concours
     let $coef := xs:decimal($c/@coefficient)
+
   return
-    <concours titre="{$c/titre}">
+    <concours titre="{data($c/titre)}">
     {
-      (: Boucle sur chaque participant du concours :)
-      for $p in $c//participant
-        (: Récupération du membre via membreRef pour obtenir son nom :)
-        let $m      := $doc//membre[@id = $p/@membreRef]
-        let $compl  := xs:integer($p/complexite)
-        let $temps  := xs:integer($p/tempsExecution)
-        (: Calcul du score et arrondi à 2 décimales :)
-        let $score  := round(($compl + $temps) * $coef * 100) div 100
+      for $p in $c/participants/participant
+        let $m := $doc//membre[@id = $p/@membreRef]
+        let $compl := xs:integer($p/complexite)
+        let $temps := xs:integer($p/tempsExecution)
+        let $score := round-half-to-even(
+          ($compl + $temps) * $coef,
+          2
+        )
       return
         <participant>
-          <nom>{ concat($m/prenom, ' ', $m/nom) }</nom>
-          <complexite>{ $compl }</complexite>
-          <tempsExecution>{ $temps }</tempsExecution>
-          <score>{ $score }</score>
+          <nom>{data($m/nom)}</nom>
+          <prenom>{data($m/prenom)}</prenom>
+          <complexite>{$compl}</complexite>
+          <tempsExecution>{$temps}</tempsExecution>
+          <score>{$score}</score>
         </participant>
     }
     </concours>
 }
 </resultats>
 
-
-(: ──────────────────────────────────────────────────────────
-   Q4 — Vainqueur de chaque concours (2 pts)
-   Participant ayant le score maximum.
-   En cas d'égalité, tous les ex-aequo sont affichés.
-   ────────────────────────────────────────────────────────── :)
-
-(: Q4 :)
-let $doc := doc("club.xml")
-return
+(: ====================================================== :)
+(: Q4 — Vainqueur de chaque concours :)
+(: Affiche tous les ex-aequo si égalité :)
+(: ====================================================== :)
+let $q4 :=
 <vainqueurs>
 {
-  for $c in $doc//concours/concours
+  for $c in $doc/club/concours/concours
     let $coef := xs:decimal($c/@coefficient)
-    (: Calcul du score de chaque participant :)
     let $scores :=
-      for $p in $c//participant
-        let $compl := xs:integer($p/complexite)
-        let $temps := xs:integer($p/tempsExecution)
-        let $score := round(($compl + $temps) * $coef * 100) div 100
-      return $score
-    (: Score maximum du concours :)
+      for $p in $c/participants/participant
+        return
+          (xs:integer($p/complexite)
+          + xs:integer($p/tempsExecution))
+          * $coef
     let $maxScore := max($scores)
   return
-    <concours titre="{$c/titre}" date="{$c/@date}">
+    <concours titre="{data($c/titre)}" date="{data($c/@date)}">
     {
-      (: Filtrer les participants dont le score = max (gère les ex-aequo) :)
-      for $p in $c//participant
-        let $m     := $doc//membre[@id = $p/@membreRef]
-        let $compl := xs:integer($p/complexite)
-        let $temps := xs:integer($p/tempsExecution)
-        let $score := round(($compl + $temps) * $coef * 100) div 100
+      for $p in $c/participants/participant
+        let $m := $doc//membre[@id = $p/@membreRef]
+        let $score :=
+          (xs:integer($p/complexite)
+          + xs:integer($p/tempsExecution))
+          * $coef
         where $score = $maxScore
       return
         <vainqueur>
-          <prenom>{ string($m/prenom) }</prenom>
-          <nom>{ string($m/nom) }</nom>
-          <score>{ $score }</score>
+          <nom>{data($m/nom)}</nom>
+          <prenom>{data($m/prenom)}</prenom>
+          <score>{round-half-to-even($score, 2)}</score>
         </vainqueur>
     }
     </concours>
 }
 </vainqueurs>
 
-
-(: ──────────────────────────────────────────────────────────
-   Q5 — Membres d'une catégorie donnée (2 pts)
-   Variable $categorie : changer la valeur pour filtrer.
-   Tri alphabétique par nom, puis par prénom.
-   ────────────────────────────────────────────────────────── :)
-
-(: Q5 :)
-let $doc       := doc("club.xml")
-(: ← Modifier cette valeur pour filtrer une autre catégorie :)
-let $categorie := "Intelligence Artificielle"
-(: Retrouver l'id de la catégorie correspondant au libellé :)
-let $catId     := $doc//categorie[@libelle = $categorie]/@id
-return
-<membres categorie="{$categorie}">
+(: ====================================================== :)
+(: Q5 — Membres d'une catégorie donnée :)
+(: Trier par nom puis prénom :)
+(: ====================================================== :)
+let $q5 :=
+<membresCategorie>
 {
-  (: Filtrer les membres de la catégorie, triés nom puis prénom :)
-  for $m in $doc//membre[@categorieRef = $catId]
-    order by $m/nom ascending, $m/prenom ascending
+  let $cat := $doc//categorie[@libelle = $categorie]
+  for $m in $doc//membre[@categorieRef = $cat/@id]
+    order by
+      lower-case(data($m/nom)),
+      lower-case(data($m/prenom))
   return
-    <membre id="{$m/@id}">
-      <nom>{ string($m/nom) }</nom>
-      <prenom>{ string($m/prenom) }</prenom>
-      <email>{ string($m/email) }</email>
+    <membre id="{data($m/@id)}">
+      <nom>{data($m/nom)}</nom>
+      <prenom>{data($m/prenom)}</prenom>
+      <email>{data($m/email)}</email>
     </membre>
 }
-</membres>
+</membresCategorie>
+
+return
+($q1, $q2, $q3, $q4, $q5)
